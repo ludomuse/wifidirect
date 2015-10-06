@@ -55,7 +55,7 @@ public class AppActivity extends Cocos2dxActivity {
 	 */
 	public static void DiscoverPeers()
 	{
-		instance._wifiDirectManager.launchServicePeersDiscovering();
+		instance._wifiDirectManager.launchServicePeersDiscovering(null);
 	}
 
 	/**
@@ -77,7 +77,7 @@ public class AppActivity extends Cocos2dxActivity {
 	 */
 	public static void ConnectToDevice(String name)
 	{
-		instance._wifiDirectManager.connectToPeer(name);
+		instance._wifiDirectManager.connectToPeer(name, null);
 	}
 
 	@Override

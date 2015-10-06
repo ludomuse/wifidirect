@@ -1,5 +1,6 @@
 package org.cocos2dx.cpp.wifiDirect;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +10,7 @@ import java.util.Map.Entry;
 
 import org.cocos2dx.cpp.DebugManager;
 import org.cocos2dx.cpp.jniFacade.JniCppFacade;
+import org.cocos2dx.cpp.sockets.CallBackMethod;
 import org.cocos2dx.cpp.sockets.SocketHandler;
 
 import android.app.Activity;
@@ -32,6 +34,7 @@ import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
+import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -43,7 +46,7 @@ public class WifiDirectManager {
 	private Channel _channel;
 	private IntentFilter _intentFilter;
 	private WiFiDirectBroadcastReceiver _receiver;
-	
+
 	private WifiManager _wifiManager;
 
 	private static final String TXTRECORD_PROP_AVAILABLE = "available";
@@ -90,12 +93,12 @@ public class WifiDirectManager {
 
 	private void initManager()
 	{
-		_wifiManager = (WifiManager) _activity.getSystemService(Context.WIFI_SERVICE);
-		//_wifiManager.setWifiEnabled(enabled)
-	
+		_wifiManager = (WifiManager) _activity
+				.getSystemService(Context.WIFI_SERVICE);
+		// _wifiManager.setWifiEnabled(enabled)
+
 		_manager = (WifiP2pManager) _activity
 				.getSystemService(Context.WIFI_P2P_SERVICE);
-		
 
 		_channel = _manager.initialize(_activity, _activity.getMainLooper(),
 				null);
@@ -132,7 +135,7 @@ public class WifiDirectManager {
 			@Override
 			public void onClick(View arg0)
 			{
-				launchServicePeersDiscovering();
+				launchServicePeersDiscovering(null);
 			}
 		});
 
@@ -151,19 +154,39 @@ public class WifiDirectManager {
 			@Override
 			public void onClick(View arg0)
 			{
-				sendString("this is a test");
+				send("this is a test");
 			}
 		});
 
+		DebugManager.AddDebugButton("SendFile", new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0)
+			{
+				File f = new File("/sdcard/Screenshots/img.jpg");
+				DebugManager.print(" file exits ? " + f.exists(), WifiDirectManager.DEBUGGER_CHANNEL);
+				send(f);
+			}
+		});
+		
+		DebugManager.AddDebugButton("SendLong", new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0)
+			{
+				send(123456789l);
+			}
+		});
+		
 		DebugManager.AddDebugButton("Clear", new OnClickListener() {
 
 			@Override
 			public void onClick(View arg0)
 			{
-				askToClearAllRequestsAndLocalServices();
+				clear();
 			}
 		});
-		
+
 		DebugManager.AddDebugButton("SwitchWifi", new OnClickListener() {
 
 			@Override
@@ -176,7 +199,7 @@ public class WifiDirectManager {
 
 	public void switchWifi()
 	{
-		if(isWifiEnabled())
+		if (isWifiEnabled())
 		{
 			turnOffWifi();
 		}
@@ -185,26 +208,67 @@ public class WifiDirectManager {
 			turnOnWifi();
 		}
 	}
+
+	private Handler notificator = new Handler();
+
+	private Runnable notificatorTask = new Runnable() {
+
+		@Override
+		public void run()
+		{
+			keepAlive();
+			notificator.postDelayed(notificatorTask, 5000);
+		}
+
+	};
+
+	public void stopServerNotificator()
+	{
+		notificator.removeCallbacks(notificatorTask);
+	}
+	public void rearmServerNotificator()
+	{
+		notificator.postDelayed(notificatorTask, 5000);
+	}
+
+	public void clear()
+	{
+		stopHandlers();
+		socket.stop();
+		turnOffWifi();
+		turnOnWifi();
+		askToClearAllRequestsAndLocalServices();
+		DebugManager.clear();
+	}
+	
+	public void stopHandlers()
+	{
+		stopServerNotificator();
+		socket.stopHandlers();
+	}
 	
 	public void turnOnWifi()
 	{
 		_wifiManager.setWifiEnabled(true);
 		DebugManager.print("Wifi is on !", WifiDirectManager.DEBUGGER_CHANNEL);
 	}
-	
+
 	public void turnOffWifi()
 	{
 		_wifiManager.setWifiEnabled(false);
 		DebugManager.print("Wifi is off !", WifiDirectManager.DEBUGGER_CHANNEL);
 	}
-	
+
 	public boolean isWifiEnabled()
 	{
 		return _wifiManager.isWifiEnabled();
 	}
-	
-	public void launchServicePeersDiscovering()
+
+	private CallBackMethod _cmPeerDiscovered;
+
+	public void launchServicePeersDiscovering(CallBackMethod cm)
 	{
+		_cmPeerDiscovered = cm;
 		_manager.discoverPeers(_channel, new WifiP2pManager.ActionListener() {
 			@Override
 			public void onSuccess()
@@ -242,27 +306,28 @@ public class WifiDirectManager {
 	}
 
 	private String lastPeerName = "";
-	
+
 	public void reconnectToPeer()
 	{
-		/*Handler handler = new Handler();
-		DebugManager.print("Trying to reconnect to peer", WifiDirectManager.DEBUGGER_CHANNEL);
-		handler.postDelayed(new Runnable()
-		{
+		/*
+		 * Handler handler = new Handler();
+		 * DebugManager.print("Trying to reconnect to peer",
+		 * WifiDirectManager.DEBUGGER_CHANNEL); handler.postDelayed(new
+		 * Runnable() {
+		 * 
+		 * @Override public void run() { connectToPeer(lastPeerName); }
+		 * 
+		 * }, 15000);
+		 */
 
-			@Override
-			public void run()
-			{
-				connectToPeer(lastPeerName);
-			}
-			
-		}, 15000);*/
-		
 	}
-	
 
-	public void connectToPeer(String peerName)
+	private CallBackMethod _cmPeerConnected;
+
+	public void connectToPeer(String peerName, CallBackMethod cmPeerConnected)
 	{
+		_cmPeerConnected = cmPeerConnected;
+
 		lastPeerName = peerName;
 		String devAddress = _mapAddressNameDevices.get(peerName);
 
@@ -321,7 +386,7 @@ public class WifiDirectManager {
 				DebugManager.print(text, DEBUGGER_CHANNEL);
 				// A disconnection message will be passed to the
 				// wifidirectmanager
-				//reconnectToPeer();
+				// reconnectToPeer();
 			}
 		});
 	}
@@ -362,7 +427,7 @@ public class WifiDirectManager {
 						text = "of unknow error";
 						break;
 				}
-				//DebugManager.print(text, DEBUGGER_CHANNEL);
+				// DebugManager.print(text, DEBUGGER_CHANNEL);
 				reconnectToPeer();
 			}
 		});
@@ -422,7 +487,7 @@ public class WifiDirectManager {
 						DebugManager
 								.print("requestPeers service seems not stable. We try to relaunch it...",
 										DEBUGGER_CHANNEL);
-						launchServicePeersDiscovering();
+						launchServicePeersDiscovering(_cmPeerDiscovered);
 					}
 					else
 					{
@@ -452,6 +517,13 @@ public class WifiDirectManager {
 								+ " peers available", DEBUGGER_CHANNEL);
 						JniCppFacade.notify(JniCppFacade.DEVICE_LIST_CHANGE);
 
+						// Launch call back method
+						if (_cmPeerDiscovered != null)
+						{
+							_cmPeerDiscovered.Do();
+							_cmPeerDiscovered = null;
+						}
+
 						/* for debug */
 						for (String device : _allDeviceList)
 						{
@@ -465,7 +537,7 @@ public class WifiDirectManager {
 										@Override
 										public void onClick(View arg0)
 										{
-											connectToPeer(device);
+											connectToPeer(device, null);
 										}
 
 									});
@@ -689,15 +761,196 @@ public class WifiDirectManager {
 	// public final static int LISTENNING_PORT_OTHER = 777;
 	public final static int LISTENNING_PORT = 40001;
 
-	public void sendString(String s)
+	private void send(final CallBackMethod cm)
 	{
-		socket.send(s);
+		if (socket.isDettachedFromRemoteHost())
+		{
+			if (_deviceList == null || _deviceList.size() == 0)
+			{
+				DebugManager
+						.print("Peers are not discovered yet. Launching required service",
+								WifiDirectManager.DEBUGGER_CHANNEL);
+				this.launchServicePeersDiscovering(new CallBackMethod() {
+
+					@Override
+					public void Do(Object...vars)
+					{
+						send(cm);
+					}
+
+				});
+			}
+			else
+			{
+				DebugManager.print(
+						"Device is not connected. Launching required service",
+						WifiDirectManager.DEBUGGER_CHANNEL);
+				this.connectToPeer(lastPeerName.equals("") ? _deviceList.get(0)
+						: lastPeerName, new CallBackMethod() {
+
+					@Override
+					public void Do(Object...vars)
+					{
+						send(cm);
+					}
+
+				});
+			}
+		}
+		else
+		{
+			DebugManager.print("Sending message...",
+					WifiDirectManager.DEBUGGER_CHANNEL);
+			stopServerNotificator();
+			cm.Do();
+			rearmServerNotificator();
+		}
+	}
+
+	public void keepAlive()
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				//stopServerNotificator();
+				socket.keepAlive();
+				//rearmServerNotificator();
+			}
+		});
+	}
+	
+	public void send(final File f)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(f);
+			}
+		});
+	}
+	
+	public void send(final byte[] bytes)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(bytes);
+			}
+		});
+	}
+	
+	
+	public void send(final double d)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(d);
+			}
+		});
+	}
+	
+	public void send(final long l)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(l);
+			}
+		});
+	}
+	
+	public void send(final float f)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(f);
+			}
+		});
+	}
+	
+	public void send(final char c)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(c);
+			}
+		});
+	}
+	
+	public void send(final byte b)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(b);
+			}
+		});
+	}
+	
+	public void send(final int i)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(i);
+			}
+		});
+	}
+	
+	public void send(final boolean b)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(b);
+			}
+		});
+	}
+	
+	public void send(final String s)
+	{
+		send(new CallBackMethod() {
+			@Override
+			public void Do(Object...vars)
+			{
+				socket.send(s);
+			}
+		});
+	}
+
+	public static void registerCallBackReceiver(CallBackMethod onReceiveString,
+			CallBackMethod onReceiveInt, CallBackMethod onReceiveBool,
+			CallBackMethod onReceiveFloat, CallBackMethod onReceiveDouble,
+			CallBackMethod onReceiveByte, CallBackMethod onReceiveLong,
+			CallBackMethod onReceiveFile, CallBackMethod onReceiveByteArray,
+			CallBackMethod onReceiveChar)
+	{
+		SocketHandler
+				.registerCallBackReceiver(onReceiveString, onReceiveInt,
+						onReceiveBool, onReceiveFloat, onReceiveDouble,
+						onReceiveByte, onReceiveLong, onReceiveFile,
+						onReceiveByteArray, onReceiveChar);
 	}
 
 	private void onConnect()
 	{
 		DebugManager.print("device connected to network", DEBUGGER_CHANNEL);
 		socket.listen(LISTENNING_PORT);
+		socket.setOnReceiveIPCallBack(_cmPeerConnected);
+		// setCallBacks();
 		_manager.requestConnectionInfo(_channel, new ConnectionInfoListener() {
 			@Override
 			public void onConnectionInfoAvailable(WifiP2pInfo info)
@@ -705,31 +958,42 @@ public class WifiDirectManager {
 				if (!info.isGroupOwner)
 				{
 					// socket.listen(LISTENNING_PORT_OTHER);
-					socket.connect(info.groupOwnerAddress.getHostAddress(),
-							LISTENNING_PORT, true);
-					//Socket socket = new Socket(info.groupOwnerAddress, LISTENNING_PORT);
-					
+					socket.setRemoteHost(
+							info.groupOwnerAddress.getHostAddress(),
+							LISTENNING_PORT);
+					// Socket socket = new Socket(info.groupOwnerAddress,
+					// LISTENNING_PORT);
+					socket.sendIP();
+					socket.setOnReceiveAccuseCallBack(_cmPeerConnected);
+
 				}
 				else
 				{
-//					 socket.listen(LISTENNING_PORT);
+
 				}
 
+				_cmPeerConnected = null;
 			}
 		});
 	}
 
 	private void onDisconnect(NetworkInfo ni)
 	{
-		socket.stop();
+		socket.notifyIsDisconnectedFromNetwork();
+
 		DebugManager
 				.print("device is not connect to network", DEBUGGER_CHANNEL);
 		DebugManager.print("Extra infos : ", DEBUGGER_CHANNEL);
-		DebugManager.print("-> network available = " + ni.isAvailable(), DEBUGGER_CHANNEL);
-		DebugManager.print("-> network connected or connecting = " + ni.isConnectedOrConnecting(), DEBUGGER_CHANNEL);
-		DebugManager.print("-> network is fail over = " + ni.isFailover(), DEBUGGER_CHANNEL);
-		DebugManager.print("-> network is roaming = " + ni.isRoaming(), DEBUGGER_CHANNEL);
-		//reconnectToPeer();
+		DebugManager.print("-> network available = " + ni.isAvailable(),
+				DEBUGGER_CHANNEL);
+		DebugManager.print(
+				"-> network connected or connecting = "
+						+ ni.isConnectedOrConnecting(), DEBUGGER_CHANNEL);
+		DebugManager.print("-> network is fail over = " + ni.isFailover(),
+				DEBUGGER_CHANNEL);
+		DebugManager.print("-> network is roaming = " + ni.isRoaming(),
+				DEBUGGER_CHANNEL);
+		// reconnectToPeer();
 	}
 
 	public Activity getActivity()

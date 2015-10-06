@@ -9,7 +9,6 @@ package org.cocos2dx.cpp.wifiDirect;
 
 import android.content.*;
 import android.net.wifi.p2p.*;
-import android.os.Handler;
 
 import java.lang.String;
 

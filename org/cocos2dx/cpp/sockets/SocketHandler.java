@@ -1,17 +1,12 @@
 package org.cocos2dx.cpp.sockets;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
-
-import org.cocos2dx.cpp.DebugManager;
-import org.cocos2dx.cpp.wifiDirect.WifiDirectManager;
-
-import android.os.Handler;
-import android.util.Log;
 
 public class SocketHandler {
 
@@ -28,6 +23,19 @@ public class SocketHandler {
 	{
 		client = new ClientSocketHandler(bufferLen);
 		this.listenningPort = listenningPort;
+	}
+
+	public static void registerCallBackReceiver(CallBackMethod onReceiveString,
+			CallBackMethod onReceiveInt, CallBackMethod onReceiveBool,
+			CallBackMethod onReceiveFloat, CallBackMethod onReceiveDouble,
+			CallBackMethod onReceiveByte, CallBackMethod onReceiveLong,
+			CallBackMethod onReceiveFile, CallBackMethod onReceiveByteArray,
+			CallBackMethod onReceiveChar)
+	{
+		ServerSocketHandler.registerCallBackReceiver(onReceiveString,
+				onReceiveInt, onReceiveBool, onReceiveFloat, onReceiveDouble,
+				onReceiveByte, onReceiveLong, onReceiveFile,
+				onReceiveByteArray, onReceiveChar);
 	}
 
 	public void resend()
@@ -59,45 +67,9 @@ public class SocketHandler {
 		}
 	}
 
-	private Handler handler = new Handler();
-	private Runnable worker;
-
-	/*private String remoteIp;
-	private int remotePort;
-	boolean wasConnectedAtLeastOneTime = false;*/
-	
-	public void connect(final String ip, final int port, final boolean sendIpToServer)
+	public boolean isConnected()
 	{
-		/*remoteIp = ip;
-		remotePort = port;*/
-		
-		worker = new Runnable() {
-
-			@Override
-			public void run()
-			{
-				if (client.isConnected())
-				{
-					DebugManager.print("Connected to server !", WifiDirectManager.DEBUGGER_CHANNEL);
-					if(sendIpToServer)
-					{
-						sendIP();
-					}
-					else
-					{
-						sendAccuse();
-					}
-				}
-				else
-				{
-					DebugManager.print("Connection to server fail. Trying again...", WifiDirectManager.DEBUGGER_CHANNEL);
-					client.connect(ip, port);
-					handler.postDelayed(worker, 500);
-				}
-			}
-
-		};
-		handler.post(worker);
+		return client.isConnected();
 	}
 
 	public void stop()
@@ -106,66 +78,137 @@ public class SocketHandler {
 			server.stop();
 	}
 
+	public boolean isDettachedFromRemoteHost()
+	{
+		return client.isDettachedFromRemoteHost();
+	}
+
+	public void dettachFromRemoteHost()
+	{
+		client.dettachFromRemoteHost();
+	}
+
+	public void notifyIsDisconnectedFromNetwork()
+	{
+		stop();
+		dettachFromRemoteHost();
+	}
+
 	public void listen(int port)
 	{
 		server = new ServerSocketHandler(port, this);
 		server.listen();
 	}
 
+	public void send(File f)
+	{
+		lastMethodName = "send";
+		args = new Object[] { f };
+		parameterTypes = new Class<?>[] { File.class };
+		server.waitForAccuse();
+		client.send(f);
+	}
+	
+	public void send(byte[] bytes)
+	{
+		lastMethodName = "send";
+		args = new Object[] { bytes };
+		parameterTypes = new Class<?>[] { byte[].class };
+		server.waitForAccuse();
+		client.sendBytes(bytes);
+	}
+	
+	public void send(double d)
+	{
+		lastMethodName = "send";
+		args = new Object[] { d };
+		parameterTypes = new Class<?>[] { Double.class };
+		server.waitForAccuse();
+		client.send(d);
+	}
+	
+	public void send(long l)
+	{
+		lastMethodName = "send";
+		args = new Object[] { l };
+		parameterTypes = new Class<?>[] { Long.class };
+		server.waitForAccuse();
+		client.send(l);
+	}
+	
+	public void send(float f)
+	{
+		lastMethodName = "send";
+		args = new Object[] { f };
+		parameterTypes = new Class<?>[] { Float.class };
+		server.waitForAccuse();
+		client.send(f);
+	}
+
+	public void send(byte b)
+	{
+		lastMethodName = "send";
+		args = new Object[] { b };
+		parameterTypes = new Class<?>[] { Byte.class };
+		server.waitForAccuse();
+		client.send(b);
+	}
+
+	public void send(char c)
+	{
+		lastMethodName = "send";
+		args = new Object[] { c };
+		parameterTypes = new Class<?>[] { Character.class };
+		server.waitForAccuse();
+		client.send(c);
+	}
+
+	public void send(int i)
+	{
+		lastMethodName = "send";
+		args = new Object[] { i };
+		parameterTypes = new Class<?>[] { Integer.class };
+		server.waitForAccuse();
+		client.send(i);
+	}
+
+	public void send(boolean b)
+	{
+		lastMethodName = "send";
+		args = new Object[] { b };
+		parameterTypes = new Class<?>[] { Boolean.class };
+		server.waitForAccuse();
+		client.send(b);
+	}
+
 	public void send(String str)
 	{
-		
-		this.resetServerNotificator();
 		lastMethodName = "send";
 		args = new Object[] { str };
 		parameterTypes = new Class<?>[] { String.class };
 		server.waitForAccuse();
 		client.send(str);
-		this.rearmServerNotificator();
 	}
 
 	public void sendIP()
 	{
-		this.resetServerNotificator();
 		lastMethodName = "sendIP";
 		args = new Object[] {};
 		parameterTypes = new Class<?>[] {};
 		server.waitForAccuse();
 		client.sendIP(listenningPort);
-		this.rearmServerNotificator();
 	}
 
 	public void sendAccuse()
 	{
-		this.resetServerNotificator();
 		client.sendAccuse();
-		this.rearmServerNotificator();
 	}
 
-	private Handler notificator = new Handler();
-	
-	private Runnable notificatorTask = new Runnable()
+	public void keepAlive()
 	{
+		client.notifyServer();
+	}
 
-		@Override
-		public void run()
-		{
-			client.notifyServer();
-			notificator.postDelayed(notificatorTask, 1000);
-		}
-		
-	};
-	
-	public void resetServerNotificator()
-	{
-		notificator.removeCallbacks(notificatorTask);
-	}
-	
-	public void rearmServerNotificator()
-	{
-		notificator.postDelayed(notificatorTask, 1000);
-	}
-	
 	public static String getThisDeviceIpAddress()
 	{
 		return getDottedDecimalIP(getLocalIPAddress());
@@ -219,5 +262,29 @@ public class SocketHandler {
 			ipAddrStr += ipAddr[i] & 0xFF;
 		}
 		return ipAddrStr;
+	}
+
+	public void setOnReceiveIPCallBack(CallBackMethod cm)
+	{
+		server.setOnReceiveIPCallBack(cm);
+	}
+
+	public void setRemoteHost(String hostAddress, int listenningPort2)
+	{
+		client.setRemoteHost(hostAddress, listenningPort);
+
+	}
+
+	public void setOnReceiveAccuseCallBack(CallBackMethod cm)
+	{
+		server.setOnReceiveAccuseCallBack(cm);
+	}
+
+	public void stopHandlers()
+	{
+		if (server != null)
+			server.stopHandlers();
+		if (client != null)
+			client.stopHandlers();
 	}
 }
