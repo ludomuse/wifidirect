@@ -2,21 +2,16 @@ package org.cocos2dx.cpp.sockets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.cocos2dx.cpp.DebugManager;
 import org.cocos2dx.cpp.wifiDirect.WifiDirectManager;
 
 import android.os.AsyncTask;
-import android.os.Environment;
 
 class Communication implements Runnable {
 	private Socket client;

@@ -1,4 +1,4 @@
-package org.cocos2dx.cpp;
+package org.cocos2dx.cpp.jniFacade;
 
 import java.util.List;
 import java.lang.String;

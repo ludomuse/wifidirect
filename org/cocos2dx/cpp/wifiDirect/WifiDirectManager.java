@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.cocos2dx.cpp.DebugManager;
-import org.cocos2dx.cpp.jniFacade.JniCppFacade;
 import org.cocos2dx.cpp.sockets.CallBackMethod;
 import org.cocos2dx.cpp.sockets.SocketHandler;
 
@@ -34,7 +33,6 @@ import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
-import android.os.Environment;
 import android.os.Handler;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -164,11 +162,12 @@ public class WifiDirectManager {
 			public void onClick(View arg0)
 			{
 				File f = new File("/sdcard/Screenshots/img.jpg");
-				DebugManager.print(" file exits ? " + f.exists(), WifiDirectManager.DEBUGGER_CHANNEL);
+				DebugManager.print(" file exits ? " + f.exists(),
+						WifiDirectManager.DEBUGGER_CHANNEL);
 				send(f);
 			}
 		});
-		
+
 		DebugManager.AddDebugButton("SendLong", new OnClickListener() {
 
 			@Override
@@ -177,7 +176,7 @@ public class WifiDirectManager {
 				send(123456789l);
 			}
 		});
-		
+
 		DebugManager.AddDebugButton("Clear", new OnClickListener() {
 
 			@Override
@@ -226,6 +225,7 @@ public class WifiDirectManager {
 	{
 		notificator.removeCallbacks(notificatorTask);
 	}
+
 	public void rearmServerNotificator()
 	{
 		notificator.postDelayed(notificatorTask, 5000);
@@ -240,13 +240,13 @@ public class WifiDirectManager {
 		askToClearAllRequestsAndLocalServices();
 		DebugManager.clear();
 	}
-	
+
 	public void stopHandlers()
 	{
 		stopServerNotificator();
 		socket.stopHandlers();
 	}
-	
+
 	public void turnOnWifi()
 	{
 		_wifiManager.setWifiEnabled(true);
@@ -266,9 +266,24 @@ public class WifiDirectManager {
 
 	private CallBackMethod _cmPeerDiscovered;
 
+	private boolean requestForServicePeersDiscoveringAlreadyLaunched = false;
+
 	public void launchServicePeersDiscovering(CallBackMethod cm)
 	{
+		if (requestForServicePeersDiscoveringAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for service peers discovering already Launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForServicePeersDiscoveringAlreadyLaunched = true;
+		}
+
 		_cmPeerDiscovered = cm;
+
 		_manager.discoverPeers(_channel, new WifiP2pManager.ActionListener() {
 			@Override
 			public void onSuccess()
@@ -276,6 +291,7 @@ public class WifiDirectManager {
 				DebugManager.print(
 						"success on launching service peersDiscovering",
 						DEBUGGER_CHANNEL);
+				requestForServicePeersDiscoveringAlreadyLaunched = false;
 			}
 
 			@Override
@@ -301,6 +317,7 @@ public class WifiDirectManager {
 						break;
 				}
 				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForServicePeersDiscoveringAlreadyLaunched = false;
 			}
 		});
 	}
@@ -324,12 +341,26 @@ public class WifiDirectManager {
 
 	private CallBackMethod _cmPeerConnected;
 
+	private boolean requestForConnectionAlreadyLaunched = false;
+
 	public void connectToPeer(String peerName, CallBackMethod cmPeerConnected)
 	{
+		if (requestForConnectionAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for connection already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForConnectionAlreadyLaunched = true;
+		}
+		
 		_cmPeerConnected = cmPeerConnected;
 
 		lastPeerName = peerName;
-		String devAddress = _mapAddressNameDevices.get(peerName);
+		String devAddress = _mapAddressNameAllDevices.get(peerName);
 
 		if (devAddress == null)
 		{
@@ -354,6 +385,7 @@ public class WifiDirectManager {
 						.print("sucess on connection request. Broadcast receiver must receive a connection message",
 								DEBUGGER_CHANNEL);
 
+				requestForConnectionAlreadyLaunched = false;
 				/*
 				 * appear before the connection is established between the two
 				 * devices initialize sockets in
@@ -384,6 +416,7 @@ public class WifiDirectManager {
 						break;
 				}
 				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForConnectionAlreadyLaunched = false;
 				// A disconnection message will be passed to the
 				// wifidirectmanager
 				// reconnectToPeer();
@@ -391,8 +424,22 @@ public class WifiDirectManager {
 		});
 	}
 
+	private boolean requestForLaunchingServiceDnsSdInfoAlreadyLaunched = false;
+
 	public void launchServiceDnsSdInfo()
 	{
+		if (requestForLaunchingServiceDnsSdInfoAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for launching service dnsSdInfo already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForLaunchingServiceDnsSdInfoAlreadyLaunched = true;
+		}
+		
 		Map<String, String> record = new HashMap<String, String>();
 		record.put(TXTRECORD_PROP_AVAILABLE, "visible");
 		WifiP2pDnsSdServiceInfo service = WifiP2pDnsSdServiceInfo.newInstance(
@@ -403,6 +450,7 @@ public class WifiDirectManager {
 			{
 				DebugManager.print("success on launching service dnsSdInfo",
 						DEBUGGER_CHANNEL);
+				requestForLaunchingServiceDnsSdInfoAlreadyLaunched = false;
 			}
 
 			@Override
@@ -427,14 +475,30 @@ public class WifiDirectManager {
 						text = "of unknow error";
 						break;
 				}
-				// DebugManager.print(text, DEBUGGER_CHANNEL);
-				reconnectToPeer();
+				
+				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForLaunchingServiceDnsSdInfoAlreadyLaunched = false;
+				// reconnectToPeer();
 			}
 		});
 	}
 
+	private boolean requestForServiceServicesDiscoveringAlreadyLaunched = false;
+
 	public void launchServiceServicesDiscovering()
 	{
+		if (requestForServiceServicesDiscoveringAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for service ServicesDiscovering already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForServiceServicesDiscoveringAlreadyLaunched = true;
+		}
+		
 		_manager.discoverServices(_channel, new ActionListener() {
 			@Override
 			public void onSuccess()
@@ -442,6 +506,7 @@ public class WifiDirectManager {
 				DebugManager.print(
 						"success on launching service serviceDiscovering",
 						DEBUGGER_CHANNEL);
+				requestForServiceServicesDiscoveringAlreadyLaunched = false;
 			}
 
 			@Override
@@ -467,19 +532,35 @@ public class WifiDirectManager {
 						break;
 				}
 				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForServiceServicesDiscoveringAlreadyLaunched = false;
 			}
 		});
 	}
 
+	private boolean requestForServiceRequestPeersAlreadyLaunched = false;
+
 	public void launchServiceRequestPeers()
 	{
+		if (requestForServiceRequestPeersAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for service requestPeers already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForServiceRequestPeersAlreadyLaunched = true;
+		}
+		
 		if (_manager != null)
 		{
 			_manager.requestPeers(_channel, new PeerListListener() {
 				@Override
 				public void onPeersAvailable(WifiP2pDeviceList peers)
 				{
-
+					
+					
 					int previousSize = _deviceList.size();
 
 					if (peers.getDeviceList().size() < previousSize)
@@ -487,6 +568,8 @@ public class WifiDirectManager {
 						DebugManager
 								.print("requestPeers service seems not stable. We try to relaunch it...",
 										DEBUGGER_CHANNEL);
+						//before making new request, make sure this method can be call again
+						requestForServiceRequestPeersAlreadyLaunched = false;
 						launchServicePeersDiscovering(_cmPeerDiscovered);
 					}
 					else
@@ -515,7 +598,11 @@ public class WifiDirectManager {
 
 						DebugManager.print("there is " + _deviceList.size()
 								+ " peers available", DEBUGGER_CHANNEL);
-						JniCppFacade.notify(JniCppFacade.DEVICE_LIST_CHANGE);
+						
+						//once the list is written
+						requestForServiceRequestPeersAlreadyLaunched = false;
+						
+						//JniCppFacade.notify(JniCppFacade.DEVICE_LIST_CHANGE);
 
 						// Launch call back method
 						if (_cmPeerDiscovered != null)
@@ -597,8 +684,22 @@ public class WifiDirectManager {
 		askToClearAllServiceRequests();
 	}
 
+	private boolean requestForServiceCleearServiceAlreadyLaunched = false;
+
 	public void askToClearAllServiceRequests()
 	{
+		if (requestForServiceCleearServiceAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for service ClearService already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForServiceCleearServiceAlreadyLaunched = true;
+		}
+		
 		_manager.clearServiceRequests(_channel, new ActionListener() {
 			@Override
 			public void onSuccess()
@@ -606,6 +707,7 @@ public class WifiDirectManager {
 				DebugManager
 						.print("success on launching request to clear all service requests",
 								DEBUGGER_CHANNEL);
+				requestForServiceCleearServiceAlreadyLaunched = false;
 			}
 
 			@Override
@@ -631,12 +733,27 @@ public class WifiDirectManager {
 						break;
 				}
 				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForServiceCleearServiceAlreadyLaunched = false;
 			}
 		});
 	}
 
+	private boolean requestForServiceClearLocalServicesAlreadyLaunched = false;
+
 	public void askToClearAllLocalServices()
 	{
+		if (requestForServiceClearLocalServicesAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for service clearLocalServices alreadyLaunched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForServiceClearLocalServicesAlreadyLaunched = true;
+		}
+		
 		_manager.clearLocalServices(_channel, new ActionListener() {
 			@Override
 			public void onSuccess()
@@ -644,6 +761,7 @@ public class WifiDirectManager {
 				DebugManager
 						.print("success on launching request to clear all local services",
 								DEBUGGER_CHANNEL);
+				requestForServiceClearLocalServicesAlreadyLaunched = false;
 			}
 
 			@Override
@@ -669,12 +787,27 @@ public class WifiDirectManager {
 						break;
 				}
 				DebugManager.print(text, DEBUGGER_CHANNEL);
+				requestForServiceClearLocalServicesAlreadyLaunched = false;
 			}
 		});
 	}
 
+	private boolean requestForAddingDnsRequestAlreadyLaunched = false;
+
 	public void launchServiceDnsRequest()
 	{
+		if (requestForAddingDnsRequestAlreadyLaunched)
+		{
+			DebugManager
+					.print("request for adding DnsRequest already launched. Please wait.",
+							DEBUGGER_CHANNEL);
+			return;
+		}
+		else
+		{
+			requestForAddingDnsRequestAlreadyLaunched = true;
+		}
+		
 		// After attaching listeners, create a service request and initiate
 		// discovery.
 		WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest
@@ -687,6 +820,7 @@ public class WifiDirectManager {
 						DebugManager.print(
 								"success on launching service dnsRequest",
 								DEBUGGER_CHANNEL);
+						requestForAddingDnsRequestAlreadyLaunched = false;
 					}
 
 					@Override
@@ -712,6 +846,7 @@ public class WifiDirectManager {
 								break;
 						}
 						DebugManager.print(text, DEBUGGER_CHANNEL);
+						requestForAddingDnsRequestAlreadyLaunched = false;
 					}
 				});
 	}
@@ -761,6 +896,11 @@ public class WifiDirectManager {
 	// public final static int LISTENNING_PORT_OTHER = 777;
 	public final static int LISTENNING_PORT = 40001;
 
+	public void setPeerName(String name)
+	{
+		lastPeerName = name;
+	}
+
 	private void send(final CallBackMethod cm)
 	{
 		if (socket.isDettachedFromRemoteHost())
@@ -773,7 +913,7 @@ public class WifiDirectManager {
 				this.launchServicePeersDiscovering(new CallBackMethod() {
 
 					@Override
-					public void Do(Object...vars)
+					public void Do(Object... vars)
 					{
 						send(cm);
 					}
@@ -789,7 +929,7 @@ public class WifiDirectManager {
 						: lastPeerName, new CallBackMethod() {
 
 					@Override
-					public void Do(Object...vars)
+					public void Do(Object... vars)
 					{
 						send(cm);
 					}
@@ -811,120 +951,119 @@ public class WifiDirectManager {
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
-				//stopServerNotificator();
+				// stopServerNotificator();
 				socket.keepAlive();
-				//rearmServerNotificator();
+				// rearmServerNotificator();
 			}
 		});
 	}
-	
+
 	public void send(final File f)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(f);
 			}
 		});
 	}
-	
+
 	public void send(final byte[] bytes)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(bytes);
 			}
 		});
 	}
-	
-	
+
 	public void send(final double d)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(d);
 			}
 		});
 	}
-	
+
 	public void send(final long l)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(l);
 			}
 		});
 	}
-	
+
 	public void send(final float f)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(f);
 			}
 		});
 	}
-	
+
 	public void send(final char c)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(c);
 			}
 		});
 	}
-	
+
 	public void send(final byte b)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(b);
 			}
 		});
 	}
-	
+
 	public void send(final int i)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(i);
 			}
 		});
 	}
-	
+
 	public void send(final boolean b)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(b);
 			}
 		});
 	}
-	
+
 	public void send(final String s)
 	{
 		send(new CallBackMethod() {
 			@Override
-			public void Do(Object...vars)
+			public void Do(Object... vars)
 			{
 				socket.send(s);
 			}

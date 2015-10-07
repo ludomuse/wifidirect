@@ -1,10 +1,10 @@
-package org.cocos2dx.cpp.wifiDirect;
+package org.cocos2dx.cpp.jniFacade;
 
 import java.io.File;
 import java.util.List;
 
-import org.cocos2dx.cpp.jniFacade.JniCppFacade;
 import org.cocos2dx.cpp.sockets.CallBackMethod;
+import org.cocos2dx.cpp.wifiDirect.WifiDirectManager;
 
 import android.app.Activity;
 
@@ -18,13 +18,6 @@ public class WifiDirectFacade {
 			onGettingPeers(_manager.getDeviceList());
 		}
 	};
-	private CallBackMethod cmOnBeingConnect = new CallBackMethod() {
-		@Override
-		public void Do(Object... vars)
-		{
-			onBeingConnected();
-		}
-	};
 	private CallBackMethod cmOnReceiveString = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
@@ -36,42 +29,42 @@ public class WifiDirectFacade {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((int) vars[0]);
+			onReceiving((Integer) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveBool = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((boolean) vars[0]);
+			onReceiving((Boolean) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveFloat = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((float) vars[0]);
+			onReceiving((Float) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveDouble = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((double) vars[0]);
+			onReceiving((Double) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveByte = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((byte) vars[0]);
+			onReceiving((Byte) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveLong = new CallBackMethod() {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((long) vars[0]);
+			onReceiving((Long) vars[0]);
 		}
 	};
 	private CallBackMethod cmOnReceiveFile = new CallBackMethod() {
@@ -92,17 +85,22 @@ public class WifiDirectFacade {
 		@Override
 		public void Do(Object... vars)
 		{
-			onReceiving((char) vars[0]);
+			onReceiving((Character) vars[0]);
 		}
 	};
 
 	public WifiDirectFacade(Activity activity)
 	{
-		_manager = new WifiDirectManager(activity);
+		JniJavaFacade._wifiDirectFacade = this;
+		
 		WifiDirectManager.registerCallBackReceiver(cmOnReceiveString, cmOnReceiveInt,
 				cmOnReceiveBool, cmOnReceiveFloat, cmOnReceiveDouble,
 				cmOnReceiveByte, cmOnReceiveLong, cmOnReceiveFile,
 				cmOnReceiveByteArray, cmOnReceiveChar);
+		
+		_manager = new WifiDirectManager(activity);
+		_manager.initialize();
+		
 	}
 
 	public void onGettingPeers(List<String> peers)
@@ -110,59 +108,54 @@ public class WifiDirectFacade {
 		JniCppFacade.onGettingPeers(peers);
 	}
 
-	public void onBeingConnected()
-	{
-		JniCppFacade.onBeingConnected();
-	}
-
 	public void onReceiving(String s)
 	{
-		JniCppFacade.onReceiving(s);
+		JniCppFacade.onReceivingString(s);
 	}
 
 	public void onReceiving(int i)
 	{
-		JniCppFacade.onReceiving(i);
+		JniCppFacade.onReceivingInt(i);
 	}
 
 	public void onReceiving(boolean b)
 	{
-		JniCppFacade.onReceiving(b);
+		JniCppFacade.onReceivingBool(b);
 	}
 
 	public void onReceiving(long l)
 	{
-		JniCppFacade.onReceiving(l);
+		JniCppFacade.onReceivingLong(l);
 	}
 
 	public void onReceiving(File f)
 	{
-		JniCppFacade.onReceiving(f);
+		JniCppFacade.onReceivingFile(f.getAbsolutePath());
 	}
 
 	public void onReceiving(double d)
 	{
-		JniCppFacade.onReceiving(d);
+		JniCppFacade.onReceivingDouble(d);
 	}
 
 	public void onReceiving(float f)
 	{
-		JniCppFacade.onReceiving(f);
+		JniCppFacade.onReceivingFloat(f);
 	}
 
 	public void onReceiving(char c)
 	{
-		JniCppFacade.onReceiving(c);
+		JniCppFacade.onReceivingChar(c);
 	}
 
 	public void onReceiving(byte b)
 	{
-		JniCppFacade.onReceiving(b);
+		JniCppFacade.onReceivingByte(b);
 	}
 
 	public void onReceiving(byte[] bytes)
 	{
-		JniCppFacade.onReceiving(bytes);
+		JniCppFacade.onReceivingBytes(bytes);
 	}
 
 	public void discoverPeers()
@@ -172,7 +165,7 @@ public class WifiDirectFacade {
 
 	public void connectTo(String deviceName)
 	{
-		_manager.connectToPeer(deviceName, cmOnBeingConnect);
+		_manager.setPeerName(deviceName);
 	}
 
 	public void send(String s)

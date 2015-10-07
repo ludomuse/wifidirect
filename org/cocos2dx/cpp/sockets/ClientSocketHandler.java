@@ -2,7 +2,6 @@ package org.cocos2dx.cpp.sockets;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -158,7 +157,7 @@ public class ClientSocketHandler {
 					ConnectTask2 connectTask = new ConnectTask2(remoteIp,
 							remotePort, socket, null);
 					connectTask.execute();
-					handler.postDelayed(worker, 500);
+					handler.postDelayed(worker, 2000);
 				}
 			}
 
@@ -182,13 +181,6 @@ public class ClientSocketHandler {
 		}
 	}
 
-	private byte[] concat(PACKET_TYPE entete, byte[] message)
-	{
-		byte[] res = new byte[message.length + 1];
-		res[0] = (byte) entete.toInt();
-		System.arraycopy(message, 0, res, 1, message.length);
-		return res;
-	}
 
 	private byte[] toByte(String str)
 	{

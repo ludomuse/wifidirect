@@ -1,8 +1,7 @@
 package org.cocos2dx.cpp.jniFacade;
 
-import android.app.Activity;
-import org.cocos2dx.cpp.AppActivity;
-import org.cocos2dx.cpp.JSONMaker;
+
+import java.io.File;
 import java.lang.String;
 
 /**
@@ -15,51 +14,67 @@ import java.lang.String;
 
 public class JniJavaFacade {
 
-	private static Activity activity = AppActivity.getInstance();
+	public static WifiDirectFacade _wifiDirectFacade;
 
-	public static String GetDiscoveredPeers()
+	public static void send(String s)
 	{
-		return JSONMaker.MakeJSONFromDeviceList(((AppActivity)activity).getDeviceList());
+		_wifiDirectFacade.send(s);
+	}
+	
+	public static void send(boolean b)
+	{
+		_wifiDirectFacade.send(b);
+	}
+	
+	public static void send(int i)
+	{
+		_wifiDirectFacade.send(i);
+	}
+	
+	public static void send(long l)
+	{
+		_wifiDirectFacade.send(l);
+	}
+	
+	public static void send(char c)
+	{
+		_wifiDirectFacade.send(c);
+	}
+	
+	public static void send(double d)
+	{
+		_wifiDirectFacade.send(d);
+	}
+	
+	public static void sendFile(String path)
+	{
+		_wifiDirectFacade.send(new File(path));
+	}
+	
+	public static void sendByte(byte b)
+	{
+		_wifiDirectFacade.send(b);
+	}
+	
+	public static void sendBytes(byte[] bytes)
+	{
+		_wifiDirectFacade.send(bytes);
+	}
+	
+	public static void send(float f)
+	{
+		_wifiDirectFacade.send(f);
+	}
+	
+	public static void discoverPeers()
+	{
+		_wifiDirectFacade.discoverPeers();
 	}
 	
 
-	/**
-	 * Calls the DiscoverPeers() method from AppActivity gets the device list it
-	 * returns and then makes the JSON String using JSONMaker.java
-	 * 
-	 * @return
-	 */
-	public static void DiscoverPeers()
+	public static void ConnectTo(String deviceName)
 	{
-
-		AppActivity.DiscoverPeers();
-		/*activity.runOnUiThread(new Runnable() {
-			@Override
-			public void run()
-			{
-				List<String> deviceList = new Vector<String>();
-				String sJSONDevices;
-				deviceList = AppActivity.DiscoverPeers();
-				sJSONDevices = JSONMaker.MakeJSONFromDeviceList(deviceList);
-				setmsJSONDevices(sJSONDevices);
-			}
-		});
-		return msJSONDevices;*/
-		
-	}
-
-
-	/**
-	 * calls the ConnectToDevice method from AppActivity using deviceName as a
-	 * parameter. Doesn't return anything yet, but we might want to consider it
-	 * returning a boolean or something to tell us if everything went well or
-	 * not.
-	 * 
-	 * @param deviceName
-	 */
-	public static void ConnectToDevice(String deviceName)
-	{
-		AppActivity.ConnectToDevice(deviceName);
+		_wifiDirectFacade.connectTo(deviceName);
 	}
 
 
