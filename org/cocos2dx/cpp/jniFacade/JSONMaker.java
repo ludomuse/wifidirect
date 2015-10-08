@@ -6,6 +6,7 @@ import java.lang.String;
 /**
  * This is the JSONMaker class. Its aim is to create the JSON Strings, no more,
  * no less.
+ * @author rani
  */
 
 public class JSONMaker {

@@ -8,6 +8,14 @@ import org.cocos2dx.cpp.wifiDirect.WifiDirectManager;
 
 import android.app.Activity;
 
+/**
+ * This is a wrapper for the WifiDirectManager, 
+ * that expose simple method such as onReceive(data)
+ * or send(data)F
+ * 
+ * @author Gregoire
+ *
+ */
 public class WifiDirectFacade {
 
 	private WifiDirectManager _manager;

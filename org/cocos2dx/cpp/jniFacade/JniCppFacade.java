@@ -1,7 +1,14 @@
 package org.cocos2dx.cpp.jniFacade;
 
 
-
+/**
+ * This class define all the native methods to be called
+ * by the java part of the WifiDirectFacade when receiving data, 
+ * in order to notifiy cpp part of the WifiDirectFacade object.
+ * 
+ * @author Gregoire
+ *
+ */
 public class JniCppFacade {
 
 	
