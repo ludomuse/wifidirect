@@ -218,4 +218,13 @@ public class WifiDirectFacade {
 		_manager.send(bytes);
 	}
 
+	public void pause()
+	{
+		_manager.pause();
+	}
+	
+	public void resume()
+	{
+		_manager.resume();
+	}
 }
